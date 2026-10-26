@@ -69,7 +69,7 @@ Open http://localhost:5173. A red banner tells you if the backend, Ollama or the
 
 The first time you use the mic, the backend downloads the speech model (about 150 MB for `base`), so that first answer is slower. The browser asks for microphone permission; allow it.
 
-To try it on your phone, connect it to the same Wi-Fi and open the `Network:` address that `npm run dev` prints. The microphone and installing it as an app (Add to Home Screen) both need HTTPS, so on a phone they come with deployment; typed practice works over Wi-Fi already.
+To try it on your phone, connect it to the same Wi-Fi and open the `Network:` address that `npm run dev` prints. The microphone and installing it as an app (Add to Home Screen) both need HTTPS; see "Use it on your phone" below. Typed practice works over plain Wi-Fi already.
 
 ## Use it on your phone
 
