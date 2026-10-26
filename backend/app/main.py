@@ -11,7 +11,7 @@ from pydantic import BaseModel, ValidationError
 
 from . import db, prompts
 from .config import settings
-from .llm import LLM, LLMError, OllamaLLM, get_llm
+from .llm import LLM, FallbackLLM, LLMError, OllamaLLM, get_llm
 from .stt import STTError, Transcriber, get_transcriber
 from .schemas import (
     Change,
@@ -33,7 +33,8 @@ MAX_AUDIO_BYTES = 10 * 1024 * 1024
 async def lifespan(_: FastAPI):
     db.init_db()
     llm = get_llm()
-    warm = asyncio.create_task(llm.warm_up()) if isinstance(llm, OllamaLLM) else None
+    local = llm.fallback if isinstance(llm, FallbackLLM) else llm
+    warm = asyncio.create_task(local.warm_up()) if isinstance(local, OllamaLLM) else None
     yield
     if warm:
         warm.cancel()
@@ -68,6 +69,9 @@ def real_changes(changes: list[Change]) -> list[Change]:
 
 @app.get("/api/health")
 async def health(llm: LLM = Depends(get_llm)) -> dict:
+    if isinstance(llm, FallbackLLM):
+        # The hosted model does the work; local Ollama is only a fallback, so its absence is not an error.
+        return {"ok": True, "remote": True, "model": llm.primary.model}
     status = await llm.health() if isinstance(llm, OllamaLLM) else {"ollama": True}
     return {"ok": True, **status}
 

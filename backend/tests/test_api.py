@@ -205,3 +205,10 @@ def test_english_explanations_add_nothing_and_unknown_languages_are_rejected(cli
     client.post("/api/grammar", json={"text": "Hi."})
     assert "Devanagari" not in fake.calls[-1]["system"] and "Write each" not in fake.calls[-1]["system"]
     assert client.post("/api/grammar", json={"text": "Hi.", "explain_in": "Klingon"}).status_code == 422
+
+
+def test_health_in_hosted_mode_does_not_require_ollama(client, monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "openai")
+    monkeypatch.setattr(settings, "remote_url", "https://api.example.com/v1")
+    monkeypatch.setattr(settings, "remote_model", "qwen")
+    assert client.get("/api/health").json() == {"ok": True, "remote": True, "model": "qwen"}

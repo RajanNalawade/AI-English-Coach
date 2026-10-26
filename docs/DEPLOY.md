@@ -15,7 +15,7 @@ Oracle's console changes from time to time, so button names below may differ sli
 
 1. In the console, go to **Compute > Instances > Create instance**.
 2. **Image**: Canonical Ubuntu 24.04 (the aarch64 build is chosen automatically for the shape below).
-3. **Shape**: Ampere, `VM.Standard.A1.Flex`, **4 OCPUs and 24 GB memory**. This is the whole Always Free allowance and is plenty for a 4B model.
+3. **Shape**: Ampere, `VM.Standard.A1.Flex`, **4 OCPUs and 24 GB memory** if your account allows it. Check your free Arm limit under **Governance & Administration > Limits, Quotas and Usage** first; some accounts now get 2 OCPUs and 12 GB, which is still enough for a 4B model (replies are just slower).
 4. **Networking**: keep the default new VCN and public subnet, with "Assign a public IPv4 address" on.
 5. **SSH keys**: choose "Generate a key pair" and download the private key.
 6. **Boot volume**: 50 GB is enough (Always Free covers up to 200 GB in total).
@@ -79,5 +79,20 @@ sudo docker compose up -d --build
 | Stop | `sudo docker compose down` |
 | Try another model | `sudo docker compose exec ollama ollama pull gemma3:4b`, set `COACH_MODEL=gemma3:4b` in `.env`, then `sudo docker compose up -d` |
 | Change the password | `rm .env`, then `bash setup.sh` again |
+
+## Optional: faster replies from a hosted open model
+
+By default every answer comes from the Ollama model on your server, which is free and private. If replies feel slow, you can point the coach at a hosted open model with an OpenAI-compatible API (DeepInfra, Groq, OpenRouter). The local model stays as the fallback, so the app keeps working if the provider is down or your credit runs out.
+
+In `deploy/.env`, set:
+
+```
+COACH_LLM_PROVIDER=openai
+COACH_REMOTE_URL=https://api.deepinfra.com/v1/openai
+COACH_REMOTE_API_KEY=your-key
+COACH_REMOTE_MODEL=the-model-name-from-the-provider
+```
+
+then run `sudo docker compose up -d`. Your text goes to that provider while this is on. Use prepaid credits with auto top-up off, and never paste the key into a chat. Set `COACH_LLM_PROVIDER=ollama` to switch back.
 
 Your mistake log and downloaded models are kept in Docker volumes, so they survive restarts and updates.

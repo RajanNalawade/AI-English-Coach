@@ -110,6 +110,7 @@ export default function App() {
 function HealthBanner({ health }: { health: Health | null }) {
   if (!health) return null
   if (!health.ok) return <p className="banner error">Cannot reach the coach server. Start the backend (see README).</p>
+  if (health.remote) return null
   if (!health.ollama) return <p className="banner error">The backend is up but Ollama is not running. Start Ollama.</p>
   if (health.model_installed === false)
     return (
