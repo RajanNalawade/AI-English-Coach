@@ -71,6 +71,10 @@ The first time you use the mic, the backend downloads the speech model (about 15
 
 To try it on your phone, connect it to the same Wi-Fi and open the `Network:` address that `npm run dev` prints. The microphone and installing it as an app (Add to Home Screen) both need HTTPS, so on a phone they come with deployment; typed practice works over Wi-Fi already.
 
+## Put it online
+
+To use it on your phone from anywhere, run it on a free Oracle Cloud server with HTTPS and a login: see [docs/DEPLOY.md](docs/DEPLOY.md). Everything is in `deploy/` (Docker Compose with Ollama, the backend, and Caddy for HTTPS).
+
 ## Configuration
 
 Backend environment variables:
@@ -100,6 +104,7 @@ The tests use a fake model, so they run without Ollama.
 
 ## Roadmap
 
-1. Text coach for English
-2. Voice conversation (this version); next: pronunciation feedback
-3. More languages, explanations in your native language, accounts, and hosting on a free cloud VM
+1. Text coach for English (done)
+2. Voice conversation and streaming replies (done)
+3. Explanations in Hindi and Marathi, and hosting on a free cloud server (done)
+4. Next: pronunciation feedback, more practice languages, accounts for several users
