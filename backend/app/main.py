@@ -1,17 +1,21 @@
 import asyncio
+import base64
 import json
+import secrets
+from pathlib import Path
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TypeVar
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 from . import db, prompts
 from .config import settings
-from .llm import LLM, FallbackLLM, LLMError, OllamaLLM, get_llm
+from .llm import LLM, FallbackLLM, LLMError, OllamaLLM, OpenAICompatLLM, get_llm
 from .stt import STTError, Transcriber, get_transcriber
 from .schemas import (
     Change,
@@ -49,6 +53,26 @@ app.add_middleware(
 )
 
 
+def authorized(header: str) -> bool:
+    scheme, _, value = header.partition(" ")
+    if scheme.lower() != "basic":
+        return False
+    try:
+        user, _, password = base64.b64decode(value).decode().partition(":")
+    except ValueError:
+        return False
+    return secrets.compare_digest(user, settings.auth_user) and secrets.compare_digest(password, settings.auth_password)
+
+
+@app.middleware("http")
+async def require_login(request: Request, call_next):
+    # Only on when COACH_PASSWORD is set; locally and behind Caddy the backend stays open.
+    # /api/health stays open so the host's health check works; it reveals only the model name.
+    if settings.auth_password and request.url.path != "/api/health" and not authorized(request.headers.get("authorization", "")):
+        return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="AI English Coach"'})
+    return await call_next(request)
+
+
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -69,9 +93,10 @@ def real_changes(changes: list[Change]) -> list[Change]:
 
 @app.get("/api/health")
 async def health(llm: LLM = Depends(get_llm)) -> dict:
-    if isinstance(llm, FallbackLLM):
-        # The hosted model does the work; local Ollama is only a fallback, so its absence is not an error.
-        return {"ok": True, "remote": True, "model": llm.primary.model}
+    remote = llm.primary if isinstance(llm, FallbackLLM) else llm
+    if isinstance(remote, OpenAICompatLLM):
+        # The hosted model does the work; local Ollama is at most a fallback, so its absence is not an error.
+        return {"ok": True, "remote": True, "model": remote.model}
     status = await llm.health() if isinstance(llm, OllamaLLM) else {"ollama": True}
     return {"ok": True, **status}
 
@@ -153,3 +178,12 @@ def transcribe(audio: UploadFile = File(...), stt: Transcriber = Depends(get_tra
         return TranscribeResponse(text=stt.transcribe(data))
     except STTError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+def mount_web(target: FastAPI, directory: str) -> None:
+    """Serves the built PWA at / (single-service hosting); mounted last so the API routes win."""
+    if directory and Path(directory).is_dir():
+        target.mount("/", StaticFiles(directory=directory, html=True), name="web")
+
+
+mount_web(app, settings.static_dir)

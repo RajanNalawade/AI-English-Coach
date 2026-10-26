@@ -1,0 +1,31 @@
+# Render Blueprint: one free web service running the whole app, with Groq's free API as the model.
+# Setup steps: docs/RENDER.md. Secrets (sync: false) are typed into Render, never committed.
+services:
+  - type: web
+    name: ai-english-coach
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: COACH_PASSWORD
+        sync: false
+      - key: COACH_REMOTE_API_KEY
+        sync: false
+      - key: COACH_USER
+        value: coach
+      - key: COACH_LLM_PROVIDER
+        value: openai
+      - key: COACH_REMOTE_URL
+        value: https://api.groq.com/openai/v1
+      - key: COACH_REMOTE_MODEL
+        value: openai/gpt-oss-20b
+      - key: COACH_REMOTE_REASONING_EFFORT
+        value: low
+      - key: COACH_STT_PROVIDER
+        value: openai
+      - key: COACH_STT_REMOTE_MODEL
+        value: whisper-large-v3-turbo
+      - key: OLLAMA_URL
+        value: none
