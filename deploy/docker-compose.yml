@@ -1,0 +1,46 @@
+# Runs the whole coach on one server: the model (Ollama), the backend, and the
+# web app behind Caddy with HTTPS. See docs/DEPLOY.md.
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: "-1"
+    volumes:
+      - ollama:/root/.ollama
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      COACH_MODEL: ${COACH_MODEL:-qwen3:4b}
+      COACH_STT_MODEL: ${COACH_STT_MODEL:-base}
+      COACH_KEEP_ALIVE: "-1"
+      COACH_CORS_ORIGINS: https://${DOMAIN}
+    volumes:
+      - data:/data
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      COACH_USER: ${COACH_USER}
+      COACH_PASSWORD_HASH: ${COACH_PASSWORD_HASH}
+    volumes:
+      - caddy:/data
+
+volumes:
+  ollama:
+  data:
+  caddy:

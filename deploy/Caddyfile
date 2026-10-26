@@ -1,0 +1,23 @@
+# DOMAIN comes from deploy/.env. With "<server-ip>.sslip.io" Caddy gets a free
+# Let's Encrypt certificate automatically, so no domain purchase is needed.
+{$DOMAIN} {
+	encode gzip
+
+	# The coach is private: everything sits behind one username and password.
+	basic_auth {
+		{$COACH_USER} {$COACH_PASSWORD_HASH}
+	}
+
+	handle /api/* {
+		reverse_proxy backend:8000 {
+			# Send streamed chat replies to the browser as they arrive.
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
