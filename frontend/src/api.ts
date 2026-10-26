@@ -1,4 +1,5 @@
 export type Level = 'A2' | 'B1' | 'B2' | 'C1'
+export type ExplainIn = 'English' | 'Hindi' | 'Marathi'
 export type Style = 'simpler' | 'formal' | 'casual' | 'natural' | 'concise'
 
 export interface Change {
@@ -65,8 +66,10 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
 
 export const api = {
   health: () => request<Health>('/api/health'),
-  grammar: (text: string, level: Level) => request<GrammarResult>('/api/grammar', { text, level }),
-  rephrase: (text: string, styles: Style[]) => request<{ variants: Variant[] }>('/api/rephrase', { text, styles }),
+  grammar: (text: string, level: Level, explain_in: ExplainIn) =>
+    request<GrammarResult>('/api/grammar', { text, level, explain_in }),
+  rephrase: (text: string, styles: Style[], explain_in: ExplainIn) =>
+    request<{ variants: Variant[] }>('/api/rephrase', { text, styles, explain_in }),
   chat: (messages: ChatMessage[], topic: string, level: Level) =>
     request<ChatResult>('/api/chat', { messages, topic, level }),
   /** Streams the reply through onToken, then resolves with the full reply and the corrections. */
@@ -74,6 +77,7 @@ export const api = {
     messages: ChatMessage[],
     topic: string,
     level: Level,
+    explain_in: ExplainIn,
     onToken: (text: string) => void,
   ): Promise<ChatResult> => {
     let res: Response
@@ -81,7 +85,7 @@ export const api = {
       res = await fetch(`${BASE}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, topic, level }),
+        body: JSON.stringify({ messages, topic, level, explain_in }),
       })
     } catch {
       throw new Error('Cannot reach the coach server. Is the backend running?')

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type Health, type Level } from './api'
+import { api, type ExplainIn, type Health, type Level } from './api'
 import GrammarTab from './components/GrammarTab'
 import RephraseTab from './components/RephraseTab'
 import ChatTab from './components/ChatTab'
@@ -18,9 +18,26 @@ function loadLevel(): Level {
   return 'B1'
 }
 
+const EXPLAIN_LANGUAGES: { value: ExplainIn; label: string }[] = [
+  { value: 'English', label: 'English' },
+  { value: 'Hindi', label: 'हिन्दी Hindi' },
+  { value: 'Marathi', label: 'मराठी Marathi' },
+]
+
+function loadExplainIn(): ExplainIn {
+  try {
+    const saved = localStorage.getItem('explainIn')
+    if (EXPLAIN_LANGUAGES.some((l) => l.value === saved)) return saved as ExplainIn
+  } catch {
+    // Storage can be unavailable (private mode); fall back to the default.
+  }
+  return 'English'
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('Grammar')
   const [level, setLevel] = useState<Level>(loadLevel)
+  const [explainIn, setExplainIn] = useState<ExplainIn>(loadExplainIn)
   const [health, setHealth] = useState<Health | null>(null)
 
   useEffect(() => {
@@ -33,6 +50,15 @@ export default function App() {
       localStorage.setItem('level', next)
     } catch {
       // Ignore; the level still applies for this visit.
+    }
+  }
+
+  function changeExplainIn(next: ExplainIn) {
+    setExplainIn(next)
+    try {
+      localStorage.setItem('explainIn', next)
+    } catch {
+      // Ignore; the choice still applies for this visit.
     }
   }
 
@@ -49,6 +75,16 @@ export default function App() {
             <option value="C1">C1 advanced</option>
           </select>
         </label>
+        <label className="level">
+          Explain in
+          <select value={explainIn} onChange={(e) => changeExplainIn(e.target.value as ExplainIn)}>
+            {EXPLAIN_LANGUAGES.map((l) => (
+              <option key={l.value} value={l.value}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
 
       <HealthBanner health={health} />
@@ -62,9 +98,9 @@ export default function App() {
       </nav>
 
       <main>
-        {tab === 'Grammar' && <GrammarTab level={level} />}
-        {tab === 'Rephrase' && <RephraseTab />}
-        {tab === 'Chat' && <ChatTab level={level} />}
+        {tab === 'Grammar' && <GrammarTab level={level} explainIn={explainIn} />}
+        {tab === 'Rephrase' && <RephraseTab explainIn={explainIn} />}
+        {tab === 'Chat' && <ChatTab level={level} explainIn={explainIn} />}
         {tab === 'Progress' && <ProgressTab />}
       </main>
     </div>

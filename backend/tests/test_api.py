@@ -182,3 +182,26 @@ def test_chat_stream_bad_corrections_json_is_an_error_event(client):
     use({"nope": 1}, tokens=["Hi!"])
     events = stream_events(client.post("/api/chat/stream", json={"messages": [{"role": "user", "content": "hi"}]}))
     assert events[-1]["type"] == "error"
+
+
+def test_explanations_language_reaches_every_prompt(client):
+    fake = use({"corrected": "Hi.", "changes": []})
+    client.post("/api/grammar", json={"text": "Hi.", "explain_in": "Marathi"})
+    assert "Marathi" in fake.calls[-1]["system"] and "Devanagari" in fake.calls[-1]["system"]
+
+    fake = use({"variants": []})
+    client.post("/api/rephrase", json={"text": "Hi.", "explain_in": "Hindi"})
+    assert "Hindi" in fake.calls[-1]["system"]
+
+    fake = use({"corrections": []}, tokens=["Hello!"])
+    client.post("/api/chat/stream", json={"messages": [{"role": "user", "content": "hi"}], "explain_in": "Hindi"})
+    assert "Hindi" in fake.calls[-1]["system"]
+    # The conversation itself stays in English.
+    assert "Hindi" not in fake.stream_calls[-1]["system"]
+
+
+def test_english_explanations_add_nothing_and_unknown_languages_are_rejected(client):
+    fake = use({"corrected": "Hi.", "changes": []})
+    client.post("/api/grammar", json={"text": "Hi."})
+    assert "Devanagari" not in fake.calls[-1]["system"] and "Write each" not in fake.calls[-1]["system"]
+    assert client.post("/api/grammar", json={"text": "Hi.", "explain_in": "Klingon"}).status_code == 422
