@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 from typing import TypeVar
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
 
 from . import db, prompts
 from .config import settings
 from .llm import LLM, LLMError, OllamaLLM, get_llm
+from .stt import STTError, Transcriber, get_transcriber
 from .schemas import (
     Change,
     ChatRequest,
@@ -17,7 +18,10 @@ from .schemas import (
     MistakeSummary,
     RephraseRequest,
     RephraseResponse,
+    TranscribeResponse,
 )
+
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 
 @asynccontextmanager
@@ -86,3 +90,17 @@ async def chat(req: ChatRequest, llm: LLM = Depends(get_llm)) -> ChatResponse:
 @app.get("/api/mistakes", response_model=MistakeSummary)
 def mistakes() -> dict:
     return db.summary()
+
+
+@app.post("/api/transcribe", response_model=TranscribeResponse)
+def transcribe(audio: UploadFile = File(...), stt: Transcriber = Depends(get_transcriber)) -> TranscribeResponse:
+    # A plain def runs in FastAPI's thread pool, so slow CPU transcription doesn't block other requests.
+    data = audio.file.read(MAX_AUDIO_BYTES + 1)
+    if not data:
+        raise HTTPException(status_code=422, detail="The recording is empty")
+    if len(data) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="The recording is too long; keep it under about a minute")
+    try:
+        return TranscribeResponse(text=stt.transcribe(data))
+    except STTError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

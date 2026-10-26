@@ -70,4 +70,20 @@ export const api = {
   chat: (messages: ChatMessage[], topic: string, level: Level) =>
     request<ChatResult>('/api/chat', { messages, topic, level }),
   mistakes: () => request<MistakeSummary>('/api/mistakes'),
+  transcribe: async (audio: Blob): Promise<string> => {
+    const form = new FormData()
+    const ext = audio.type.includes('mp4') ? 'mp4' : audio.type.includes('ogg') ? 'ogg' : 'webm'
+    form.append('audio', audio, `recording.${ext}`)
+    let res: Response
+    try {
+      res = await fetch(`${BASE}/api/transcribe`, { method: 'POST', body: form })
+    } catch {
+      throw new Error('Cannot reach the coach server. Is the backend running?')
+    }
+    if (!res.ok) {
+      const detail = await res.json().then((d) => d.detail, () => null)
+      throw new Error(typeof detail === 'string' ? detail : `Transcription failed (${res.status})`)
+    }
+    return ((await res.json()) as { text: string }).text
+  },
 }

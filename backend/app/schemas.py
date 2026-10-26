@@ -86,3 +86,7 @@ class MistakeSummary(BaseModel):
     total: int
     top_categories: list[CategoryCount]
     recent: list[MistakeEntry]
+
+
+class TranscribeResponse(BaseModel):
+    text: str
