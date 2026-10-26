@@ -3,10 +3,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app import db
+from app import main
 from app.config import settings
 from app.llm import LLMError, get_llm
 from app.main import app
+from app.stt import STTError, get_transcriber
 
 
 class FakeLLM:
@@ -89,3 +90,45 @@ def test_unreachable_model_is_a_502(client):
     res = client.post("/api/grammar", json={"text": "x"})
     assert res.status_code == 502
     assert "reach" in res.json()["detail"]
+
+
+class FakeTranscriber:
+    def __init__(self, text: str = "", error: Exception | None = None) -> None:
+        self.text = text
+        self.error = error
+        self.received: list[bytes] = []
+
+    def transcribe(self, audio: bytes) -> str:
+        self.received.append(audio)
+        if self.error:
+            raise self.error
+        return self.text
+
+
+def use_stt(fake: FakeTranscriber) -> FakeTranscriber:
+    app.dependency_overrides[get_transcriber] = lambda: fake
+    return fake
+
+
+def test_transcribe_returns_text(client):
+    fake = use_stt(FakeTranscriber("I eated pizza yesterday"))
+    res = client.post("/api/transcribe", files={"audio": ("clip.webm", b"fake-audio", "audio/webm")})
+    assert res.status_code == 200
+    assert res.json() == {"text": "I eated pizza yesterday"}
+    assert fake.received == [b"fake-audio"]
+
+
+def test_transcribe_rejects_empty_and_oversized_audio(client, monkeypatch):
+    use_stt(FakeTranscriber("x"))
+    res = client.post("/api/transcribe", files={"audio": ("clip.webm", b"", "audio/webm")})
+    assert res.status_code == 422
+
+    monkeypatch.setattr(main, "MAX_AUDIO_BYTES", 4)
+    res = client.post("/api/transcribe", files={"audio": ("clip.webm", b"12345", "audio/webm")})
+    assert res.status_code == 413
+
+
+def test_transcribe_failure_is_a_502(client):
+    use_stt(FakeTranscriber(error=STTError("Could not transcribe the recording: bad audio")))
+    res = client.post("/api/transcribe", files={"audio": ("clip.webm", b"junk", "audio/webm")})
+    assert res.status_code == 502

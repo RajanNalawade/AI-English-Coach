@@ -97,3 +97,15 @@ button.link { background: none; border: none; color: var(--accent); cursor: poin
 .bar { height: 10px; border-radius: 5px; background: var(--accent); }
 .bar-label { font-size: 0.9rem; }
 .bar-count { text-align: right; color: var(--muted); font-size: 0.9rem; }
+
+.chat-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+.chat-bar .topic { flex: 1; min-width: 0; }
+.toggle { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 0.9rem; cursor: pointer; }
+.replay { display: block; margin-top: 6px; font-size: 0.85rem; }
+.mic {
+  flex: none; width: 44px; display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--accent);
+}
+.mic.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+.mic:disabled { opacity: 0.5; cursor: default; }
+.recording-hint { color: var(--bad); }
