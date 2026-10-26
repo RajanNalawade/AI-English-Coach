@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { api, type Style, type Variant } from '../api'
+import { api, type ExplainIn, type Style, type Variant } from '../api'
 import { SLOW_HINT, useAsync } from './useAsync'
 
 const STYLES: Style[] = ['simpler', 'formal', 'casual', 'natural', 'concise']
 
-export default function RephraseTab() {
+export default function RephraseTab({ explainIn }: { explainIn: ExplainIn }) {
   const [text, setText] = useState('')
   const [styles, setStyles] = useState<Style[]>(['simpler', 'formal', 'natural'])
   const [variants, setVariants] = useState<Variant[]>([])
@@ -15,7 +15,7 @@ export default function RephraseTab() {
   }
 
   async function rephrase() {
-    const res = await run(() => api.rephrase(text, STYLES.filter((s) => styles.includes(s))))
+    const res = await run(() => api.rephrase(text, STYLES.filter((s) => styles.includes(s)), explainIn))
     if (res) setVariants(res.variants)
   }
 

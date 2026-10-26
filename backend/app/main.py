@@ -74,7 +74,7 @@ async def health(llm: LLM = Depends(get_llm)) -> dict:
 
 @app.post("/api/grammar", response_model=GrammarResponse)
 async def grammar(req: GrammarRequest, llm: LLM = Depends(get_llm)) -> GrammarResponse:
-    result = await ask(llm, GrammarResponse, prompts.grammar_system(req.level), [{"role": "user", "content": req.text}])
+    result = await ask(llm, GrammarResponse, prompts.grammar_system(req.level, req.explain_in), [{"role": "user", "content": req.text}])
     result.changes = real_changes(result.changes)
     db.log_changes("grammar", result.changes)
     return result
@@ -82,7 +82,7 @@ async def grammar(req: GrammarRequest, llm: LLM = Depends(get_llm)) -> GrammarRe
 
 @app.post("/api/rephrase", response_model=RephraseResponse)
 async def rephrase(req: RephraseRequest, llm: LLM = Depends(get_llm)) -> RephraseResponse:
-    return await ask(llm, RephraseResponse, prompts.rephrase_system(req.styles), [{"role": "user", "content": req.text}])
+    return await ask(llm, RephraseResponse, prompts.rephrase_system(req.styles, req.explain_in), [{"role": "user", "content": req.text}])
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -90,7 +90,7 @@ async def chat(req: ChatRequest, llm: LLM = Depends(get_llm)) -> ChatResponse:
     if req.messages[-1].role != "user":
         raise HTTPException(status_code=422, detail="The last message must be from the user")
     messages = [m.model_dump() for m in req.messages]
-    result = await ask(llm, ChatResponse, prompts.chat_system(req.topic, req.level), messages)
+    result = await ask(llm, ChatResponse, prompts.chat_system(req.topic, req.level, req.explain_in), messages)
     result.corrections = real_changes(result.corrections)
     db.log_changes("chat", result.corrections)
     return result
@@ -117,7 +117,7 @@ async def chat_stream(req: ChatRequest, llm: LLM = Depends(get_llm)) -> Streamin
         try:
             async for text in llm.stream_text(prompts.chat_reply_system(req.topic, req.level), messages):
                 yield line({"type": "token", "text": text})
-            result = await ask(llm, CorrectionsResponse, prompts.chat_corrections_system(req.level), latest)
+            result = await ask(llm, CorrectionsResponse, prompts.chat_corrections_system(req.level, req.explain_in), latest)
         except LLMError as exc:
             yield line({"type": "error", "detail": str(exc)})
             return

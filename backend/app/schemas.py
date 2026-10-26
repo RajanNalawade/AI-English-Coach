@@ -17,6 +17,8 @@ Category = Literal[
     "other",
 ]
 
+ExplainIn = Literal["English", "Hindi", "Marathi"]
+
 Style = Literal["simpler", "formal", "casual", "natural", "concise"]
 
 
@@ -30,6 +32,7 @@ class Change(BaseModel):
 class GrammarRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     level: Level = "B1"
+    explain_in: ExplainIn = "English"
 
 
 class GrammarResponse(BaseModel):
@@ -40,6 +43,7 @@ class GrammarResponse(BaseModel):
 class RephraseRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     styles: list[Style] = Field(default_factory=lambda: ["simpler", "formal", "natural"], min_length=1, max_length=5)
+    explain_in: ExplainIn = "English"
 
 
 class Variant(BaseModel):
@@ -61,6 +65,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=50)
     topic: str = Field(default="everyday small talk", max_length=200)
     level: Level = "B1"
+    explain_in: ExplainIn = "English"
 
 
 class ChatResponse(BaseModel):

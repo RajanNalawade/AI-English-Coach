@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { api, type GrammarResult, type Level } from '../api'
+import { api, type ExplainIn, type GrammarResult, type Level } from '../api'
 import ChangeList from './ChangeList'
 import { SLOW_HINT, useAsync } from './useAsync'
 
-export default function GrammarTab({ level }: { level: Level }) {
+export default function GrammarTab({ level, explainIn }: { level: Level; explainIn: ExplainIn }) {
   const [text, setText] = useState('')
   const [result, setResult] = useState<GrammarResult | null>(null)
   const { loading, error, run } = useAsync()
 
   async function check() {
-    const res = await run(() => api.grammar(text, level))
+    const res = await run(() => api.grammar(text, level, explainIn))
     if (res) setResult(res)
   }
 

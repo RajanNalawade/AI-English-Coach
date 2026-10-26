@@ -18,6 +18,7 @@ PWA (React + Vite)  --HTTP-->  Backend (Python FastAPI)  --HTTP-->  Ollama (loca
 - **Voice**: tap the mic in Chat and speak. Your speech is turned into text on your own machine with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and replies are read aloud with your device's built-in voices.
 - **Progress**: your most common mistake categories and recent corrections.
 - **Level**: CEFR A2 to C1 changes how the coach explains things.
+- **Explain in**: get explanations of your mistakes in Hindi or Marathi while you keep practising English. Small models are weaker in Marathi than in Hindi; if explanations read badly, try `gemma3:4b`.
 
 ## Requirements
 

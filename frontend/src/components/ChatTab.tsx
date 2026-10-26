@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, type Change, type ChatMessage, type Level } from '../api'
+import { api, type Change, type ChatMessage, type ExplainIn, type Level } from '../api'
 import ChangeList from './ChangeList'
 import { SLOW_HINT, useAsync } from './useAsync'
 import { canRecord, canSpeak, speak, stopSpeaking, useRecorder } from './voice'
@@ -25,7 +25,7 @@ function loadSpeakReplies(): boolean {
   }
 }
 
-export default function ChatTab({ level }: { level: Level }) {
+export default function ChatTab({ level, explainIn }: { level: Level; explainIn: ExplainIn }) {
   const [topic, setTopic] = useState(TOPICS[0])
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
@@ -57,6 +57,7 @@ export default function ChatTab({ level }: { level: Level }) {
         next.map(({ role, content }) => ({ role, content })),
         topic,
         level,
+        explainIn,
         (text) => {
           streamed += text
           updateLast({ content: streamed })
