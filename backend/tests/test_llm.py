@@ -115,3 +115,26 @@ def test_get_llm_defaults_to_ollama_and_switches_with_settings(monkeypatch):
     # Without a model name the hosted provider can't be used, so stay local.
     monkeypatch.setattr(settings, "remote_model", "")
     assert isinstance(get_llm(), OllamaLLM)
+
+
+def test_get_llm_without_local_ollama_uses_only_the_hosted_model(monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "openai")
+    monkeypatch.setattr(settings, "remote_url", "https://api.groq.com/openai/v1")
+    monkeypatch.setattr(settings, "remote_model", "openai/gpt-oss-20b")
+    for no_local in ("", "none"):
+        monkeypatch.setattr(settings, "ollama_url", no_local)
+        assert isinstance(get_llm(), OpenAICompatLLM)
+
+
+def test_openai_compat_sends_reasoning_effort_only_when_set():
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return completion('{"corrected": "Hi."}')
+
+    for effort in ("", "low"):
+        llm = OpenAICompatLLM("https://api.example.com/v1", "k", "m", 5, httpx.MockTransport(handler), reasoning_effort=effort)
+        run(llm.complete_json("sys", [{"role": "user", "content": "hi"}], SCHEMA))
+    assert "reasoning_effort" not in seen[0]
+    assert seen[1]["reasoning_effort"] == "low"

@@ -76,6 +76,7 @@ To try it on your phone, connect it to the same Wi-Fi and open the `Network:` ad
 - **Easiest, free:** keep it running on your PC and open it from your phone through Tailscale: see [docs/PHONE.md](docs/PHONE.md).
 - **Always on, Hugging Face PRO:** run it in a Hugging Face Docker Space with a login (Docker Spaces now need PRO): see [docs/HF_SPACE.md](docs/HF_SPACE.md).
 - **Always on, free:** run it on an Oracle Cloud Always Free server with HTTPS and a login: see [docs/DEPLOY.md](docs/DEPLOY.md).
+- **Always on, free, no card, fast:** one free Render service with Groq's free API doing the AI (your text goes to Groq): see [docs/RENDER.md](docs/RENDER.md).
 
 ## Configuration
 
@@ -91,6 +92,14 @@ Backend environment variables:
 | `COACH_STT_MODEL` | `base` | Speech model: `tiny` (fastest), `base`, `small` (more accurate, slower) |
 | `COACH_STT_LANGUAGE` | `en` | Language you speak in |
 | `COACH_CORS_ORIGINS` | `http://localhost:5173` | Comma-separated origins allowed to call the API |
+| `COACH_LLM_PROVIDER` | `ollama` | `openai` sends AI requests to the hosted API below first |
+| `COACH_REMOTE_URL`, `COACH_REMOTE_API_KEY`, `COACH_REMOTE_MODEL` | empty | Any OpenAI-compatible API, e.g. Groq `https://api.groq.com/openai/v1` |
+| `COACH_REMOTE_REASONING_EFFORT` | empty | `low`/`medium`/`high` for reasoning models such as gpt-oss |
+| `COACH_STT_PROVIDER` | `local` | `openai` sends recordings to the hosted API (model `COACH_STT_REMOTE_MODEL`, default `whisper-large-v3-turbo`) |
+| `COACH_USER`, `COACH_PASSWORD` | `coach`, empty | With a password set, the backend asks for this login itself |
+| `COACH_STATIC_DIR` | empty | Folder with the built app for the backend to serve at `/` |
+
+Set `OLLAMA_URL=none` when there is no local Ollama to fall back to.
 
 Frontend: set `VITE_API_URL` when the backend is on a different host from the app.
 

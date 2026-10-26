@@ -99,11 +99,18 @@ class OpenAICompatLLM:
     """Talks to a hosted model through an OpenAI-compatible chat completions API."""
 
     def __init__(
-        self, base_url: str, api_key: str, model: str, timeout: float, transport: httpx.AsyncBaseTransport | None = None
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        timeout: float,
+        transport: httpx.AsyncBaseTransport | None = None,
+        reasoning_effort: str = "",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.reasoning_effort = reasoning_effort
         self.headers = {"Authorization": f"Bearer {api_key}"}
         self.transport = transport
 
@@ -111,12 +118,15 @@ class OpenAICompatLLM:
         return httpx.AsyncClient(timeout=self.timeout, headers=self.headers, transport=self.transport)
 
     def _body(self, system: str, messages: list[dict[str, str]], stream: bool) -> dict[str, Any]:
-        return {
+        body: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, *messages],
             "temperature": 0.3,
             "stream": stream,
         }
+        if self.reasoning_effort:
+            body["reasoning_effort"] = self.reasoning_effort
+        return body
 
     async def complete_json(self, system: str, messages: list[dict[str, str]], schema: dict[str, Any]) -> dict[str, Any]:
         body = self._body(system, messages, stream=False)
@@ -192,6 +202,14 @@ class FallbackLLM:
 def get_llm() -> LLM:
     local = OllamaLLM(settings.ollama_url, settings.model, settings.llm_timeout, settings.keep_alive)
     if settings.llm_provider == "openai" and settings.remote_url and settings.remote_model:
-        remote = OpenAICompatLLM(settings.remote_url, settings.remote_api_key, settings.remote_model, settings.remote_timeout)
-        return FallbackLLM(remote, local)
+        remote = OpenAICompatLLM(
+            settings.remote_url,
+            settings.remote_api_key,
+            settings.remote_model,
+            settings.remote_timeout,
+            reasoning_effort=settings.remote_reasoning_effort,
+        )
+        # OLLAMA_URL "none" (or empty) means there is no local model to fall back to, e.g. on a small free host.
+        has_local = settings.ollama_url.strip().lower() not in ("", "none")
+        return FallbackLLM(remote, local) if has_local else remote
     return local
