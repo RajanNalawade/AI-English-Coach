@@ -1,0 +1,54 @@
+# Publishes the app to a Hugging Face Space on every push to main (docs/HF_SPACE.md).
+# Does nothing until the HF_TOKEN secret and HF_SPACE variable are set in the repo settings.
+name: Deploy to Hugging Face
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: hf-space
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE: ${{ vars.HF_SPACE }}
+    steps:
+      - name: Check settings
+        id: check
+        run: |
+          if [ -n "$HF_TOKEN" ] && [ -n "$HF_SPACE" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::HF_TOKEN secret or HF_SPACE variable not set; skipping the Hugging Face deploy."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+
+      - name: Upload to the Space
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          # A Docker Space needs its Dockerfile and README (with the Space settings) at the root.
+          cp deploy/hf-space/Dockerfile Dockerfile
+          cp deploy/hf-space/README.md README.md
+          pip install --quiet "huggingface_hub>=0.34"
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          # The upload handles binary files (icons) the way the Hub requires, and
+          # delete_patterns removes files that no longer exist in the repo.
+          HfApi(token=os.environ["HF_TOKEN"]).upload_folder(
+              repo_id=os.environ["HF_SPACE"],
+              repo_type="space",
+              folder_path=".",
+              ignore_patterns=[".git/*", ".github/*", "**/node_modules/*"],
+              delete_patterns=["*"],
+              commit_message=f"Deploy {os.environ['GITHUB_SHA'][:7]} from GitHub",
+          )
+          PY

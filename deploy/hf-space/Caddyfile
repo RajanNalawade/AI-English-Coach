@@ -1,0 +1,27 @@
+# Hugging Face handles HTTPS in front of the Space, so Caddy only listens on plain HTTP.
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT} {
+	encode gzip
+
+	# The Space is public, so the whole app sits behind one username and password.
+	basic_auth {
+		{$COACH_USER} {$COACH_PASSWORD_HASH}
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8000 {
+			# Send streamed chat replies to the browser as they arrive.
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
