@@ -41,6 +41,8 @@ export interface Health {
   ollama: boolean
   model?: string
   model_installed?: boolean
+  /** True when a hosted model answers first; Ollama is then only the fallback. */
+  remote?: boolean
 }
 
 // Empty means "same origin": the Vite dev server proxies /api to the backend.

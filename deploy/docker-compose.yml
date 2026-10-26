@@ -20,6 +20,10 @@ services:
       COACH_STT_MODEL: ${COACH_STT_MODEL:-base}
       COACH_KEEP_ALIVE: "-1"
       COACH_CORS_ORIGINS: https://${DOMAIN}
+      COACH_LLM_PROVIDER: ${COACH_LLM_PROVIDER:-ollama}
+      COACH_REMOTE_URL: ${COACH_REMOTE_URL:-}
+      COACH_REMOTE_API_KEY: ${COACH_REMOTE_API_KEY:-}
+      COACH_REMOTE_MODEL: ${COACH_REMOTE_MODEL:-}
     volumes:
       - data:/data
 
