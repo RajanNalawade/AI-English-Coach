@@ -14,7 +14,7 @@ PWA (React + Vite)  --HTTP-->  Backend (Python FastAPI)  --HTTP-->  Ollama (loca
 
 - **Grammar**: corrected text plus each change with a category (tense, article, preposition...) and a one-line reason.
 - **Rephrase**: the same sentence as simpler, formal, casual, natural or concise.
-- **Chat**: role-play on a topic; corrections for each of your messages appear under it without interrupting the conversation.
+- **Chat**: role-play on a topic; replies appear word by word as they are generated, and corrections for each of your messages appear under it without interrupting the conversation.
 - **Voice**: tap the mic in Chat and speak. Your speech is turned into text on your own machine with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and replies are read aloud with your device's built-in voices.
 - **Progress**: your most common mistake categories and recent corrections.
 - **Level**: CEFR A2 to C1 changes how the coach explains things.
@@ -80,6 +80,7 @@ Backend environment variables:
 | `OLLAMA_URL` | `http://localhost:11434` | Where Ollama is running |
 | `COACH_DB` | `coach.db` | SQLite file for the mistake log |
 | `COACH_LLM_TIMEOUT` | `180` | Seconds to wait for the model |
+| `COACH_KEEP_ALIVE` | `30m` | How long Ollama keeps the model loaded between requests (`-1` = always) |
 | `COACH_STT_MODEL` | `base` | Speech model: `tiny` (fastest), `base`, `small` (more accurate, slower) |
 | `COACH_STT_LANGUAGE` | `en` | Language you speak in |
 | `COACH_CORS_ORIGINS` | `http://localhost:5173` | Comma-separated origins allowed to call the API |

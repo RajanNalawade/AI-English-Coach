@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import pytest
@@ -11,9 +12,18 @@ from app.stt import STTError, get_transcriber
 
 
 class FakeLLM:
-    def __init__(self, answer: dict[str, Any] | Exception) -> None:
+    def __init__(self, answer: dict[str, Any] | Exception, tokens: list[str] | None = None) -> None:
         self.answer = answer
+        self.tokens = tokens or []
         self.calls: list[dict[str, Any]] = []
+        self.stream_calls: list[dict[str, Any]] = []
+
+    async def stream_text(self, system, messages):
+        self.stream_calls.append({"system": system, "messages": messages})
+        for token in self.tokens:
+            if isinstance(token, Exception):
+                raise token
+            yield token
 
     async def complete_json(self, system, messages, schema):
         self.calls.append({"system": system, "messages": messages, "schema": schema})
@@ -30,8 +40,8 @@ def client(tmp_path, monkeypatch):
     app.dependency_overrides.clear()
 
 
-def use(answer) -> FakeLLM:
-    fake = FakeLLM(answer)
+def use(answer, tokens=None) -> FakeLLM:
+    fake = FakeLLM(answer, tokens)
     app.dependency_overrides[get_llm] = lambda: fake
     return fake
 
@@ -132,3 +142,43 @@ def test_transcribe_failure_is_a_502(client):
     use_stt(FakeTranscriber(error=STTError("Could not transcribe the recording: bad audio")))
     res = client.post("/api/transcribe", files={"audio": ("clip.webm", b"junk", "audio/webm")})
     assert res.status_code == 502
+
+
+def stream_events(res) -> list[dict]:
+    return [json.loads(line) for line in res.text.splitlines() if line.strip()]
+
+
+def test_chat_stream_sends_tokens_then_corrections(client):
+    fake = use(
+        {"corrections": [{"original": "eated", "correction": "ate", "category": "tense", "explanation": "Irregular past."}]},
+        tokens=["Pizza ", "sounds ", "great!"],
+    )
+    history = [
+        {"role": "assistant", "content": "How was your weekend?"},
+        {"role": "user", "content": "It was great, I eated pizza"},
+    ]
+    res = client.post("/api/chat/stream", json={"messages": history, "topic": "weekends"})
+    assert res.status_code == 200
+    events = stream_events(res)
+    assert "".join(e["text"] for e in events if e["type"] == "token") == "Pizza sounds great!"
+    assert events[-2]["type"] == "corrections"
+    assert events[-2]["corrections"][0]["correction"] == "ate"
+    assert events[-1] == {"type": "done"}
+    assert fake.stream_calls[0]["messages"] == history
+    assert "weekends" in fake.stream_calls[0]["system"]
+    assert client.get("/api/mistakes").json()["total"] == 1
+
+
+def test_chat_stream_reports_model_errors_in_band(client):
+    use({"corrections": []}, tokens=["Hel", LLMError("Could not reach the model")])
+    res = client.post("/api/chat/stream", json={"messages": [{"role": "user", "content": "hi"}]})
+    events = stream_events(res)
+    assert events[0] == {"type": "token", "text": "Hel"}
+    assert events[-1]["type"] == "error"
+    assert "reach" in events[-1]["detail"]
+
+
+def test_chat_stream_bad_corrections_json_is_an_error_event(client):
+    use({"nope": 1}, tokens=["Hi!"])
+    events = stream_events(client.post("/api/chat/stream", json={"messages": [{"role": "user", "content": "hi"}]}))
+    assert events[-1]["type"] == "error"
