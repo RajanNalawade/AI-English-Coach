@@ -10,7 +10,7 @@ PWA (React + Vite)  --HTTP-->  Backend (Python FastAPI)  --HTTP-->  Ollama (loca
   the device's voices      SQLite (mistakes)  faster-whisper (speech to text, CPU)
 ```
 
-## Features (phase 1)
+## Features
 
 - **Grammar**: corrected text plus each change with a category (tense, article, preposition...) and a one-line reason.
 - **Rephrase**: the same sentence as simpler, formal, casual, natural or concise.
