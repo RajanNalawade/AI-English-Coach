@@ -1,6 +1,8 @@
-# Put the coach online for free (Hugging Face Spaces)
+# Put the coach online with Hugging Face Spaces (needs PRO)
 
-This runs the whole coach (Ollama model, backend and app) in one free Hugging Face **Docker Space** on the "CPU basic" hardware (2 vCPU, 16 GB RAM). No card is needed. You get a fixed HTTPS address that works on your phone even when your PC is off, protected by a username and password.
+> **Not free any more:** since July 2026 Hugging Face only allows Docker Spaces on CPU basic for PRO accounts (about $9/month). Free accounts can only create Static Spaces, which can't run the model. Use this guide only if you have PRO; otherwise see [PHONE.md](PHONE.md) or [DEPLOY.md](DEPLOY.md).
+
+This runs the whole coach (Ollama model, backend and app) in one Hugging Face **Docker Space** on the "CPU basic" hardware (2 vCPU, 16 GB RAM). You get a fixed HTTPS address that works on your phone even when your PC is off, protected by a username and password.
 
 Things to know:
 

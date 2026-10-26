@@ -74,7 +74,7 @@ To try it on your phone, connect it to the same Wi-Fi and open the `Network:` ad
 ## Use it on your phone
 
 - **Easiest, free:** keep it running on your PC and open it from your phone through Tailscale: see [docs/PHONE.md](docs/PHONE.md).
-- **Always on, free, no card:** run it in a free Hugging Face Space with a login: see [docs/HF_SPACE.md](docs/HF_SPACE.md).
+- **Always on, Hugging Face PRO:** run it in a Hugging Face Docker Space with a login (Docker Spaces now need PRO): see [docs/HF_SPACE.md](docs/HF_SPACE.md).
 - **Always on, free:** run it on an Oracle Cloud Always Free server with HTTPS and a login: see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Configuration
