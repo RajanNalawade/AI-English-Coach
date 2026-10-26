@@ -68,6 +68,10 @@ class ChatResponse(BaseModel):
     corrections: list[Change]
 
 
+class CorrectionsResponse(BaseModel):
+    corrections: list[Change]
+
+
 class CategoryCount(BaseModel):
     category: Category
     count: int

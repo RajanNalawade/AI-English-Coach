@@ -69,6 +69,52 @@ export const api = {
   rephrase: (text: string, styles: Style[]) => request<{ variants: Variant[] }>('/api/rephrase', { text, styles }),
   chat: (messages: ChatMessage[], topic: string, level: Level) =>
     request<ChatResult>('/api/chat', { messages, topic, level }),
+  /** Streams the reply through onToken, then resolves with the full reply and the corrections. */
+  chatStream: async (
+    messages: ChatMessage[],
+    topic: string,
+    level: Level,
+    onToken: (text: string) => void,
+  ): Promise<ChatResult> => {
+    let res: Response
+    try {
+      res = await fetch(`${BASE}/api/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, topic, level }),
+      })
+    } catch {
+      throw new Error('Cannot reach the coach server. Is the backend running?')
+    }
+    if (!res.ok || !res.body) {
+      const detail = await res.json().then((d) => d.detail, () => null)
+      throw new Error(typeof detail === 'string' ? detail : `Request failed (${res.status})`)
+    }
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+    let buffer = ''
+    let reply = ''
+    let corrections: Change[] = []
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += value
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        if (!line.trim()) continue
+        const event = JSON.parse(line)
+        if (event.type === 'token') {
+          reply += event.text
+          onToken(event.text)
+        } else if (event.type === 'corrections') {
+          corrections = event.corrections
+        } else if (event.type === 'error') {
+          throw new Error(event.detail)
+        }
+      }
+    }
+    return { reply: reply.trim(), corrections }
+  },
   mistakes: () => request<MistakeSummary>('/api/mistakes'),
   transcribe: async (audio: Blob): Promise<string> => {
     const form = new FormData()

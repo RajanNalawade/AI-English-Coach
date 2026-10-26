@@ -1,8 +1,12 @@
+import asyncio
+import json
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TypeVar
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ValidationError
 
 from . import db, prompts
@@ -13,6 +17,7 @@ from .schemas import (
     Change,
     ChatRequest,
     ChatResponse,
+    CorrectionsResponse,
     GrammarRequest,
     GrammarResponse,
     MistakeSummary,
@@ -27,7 +32,11 @@ MAX_AUDIO_BYTES = 10 * 1024 * 1024
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.init_db()
+    llm = get_llm()
+    warm = asyncio.create_task(llm.warm_up()) if isinstance(llm, OllamaLLM) else None
     yield
+    if warm:
+        warm.cancel()
 
 
 app = FastAPI(title="AI English Coach", lifespan=lifespan)
@@ -85,6 +94,42 @@ async def chat(req: ChatRequest, llm: LLM = Depends(get_llm)) -> ChatResponse:
     result.corrections = real_changes(result.corrections)
     db.log_changes("chat", result.corrections)
     return result
+
+
+@app.post("/api/chat/stream")
+async def chat_stream(req: ChatRequest, llm: LLM = Depends(get_llm)) -> StreamingResponse:
+    """Streams the reply as it is generated, then sends the corrections.
+
+    The body is newline-delimited JSON: {"type": "token", "text": ...} lines, then one
+    {"type": "corrections", "corrections": [...]} line, then {"type": "done"}.
+    An {"type": "error", "detail": ...} line replaces the rest if something fails.
+    """
+    if req.messages[-1].role != "user":
+        raise HTTPException(status_code=422, detail="The last message must be from the user")
+    messages = [m.model_dump() for m in req.messages]
+    # Only the latest exchange matters for corrections; a shorter prompt is faster on CPU.
+    latest = messages[-2:] if len(messages) > 1 else messages
+
+    async def events() -> AsyncIterator[str]:
+        def line(obj: dict) -> str:
+            return json.dumps(obj) + "\n"
+
+        try:
+            async for text in llm.stream_text(prompts.chat_reply_system(req.topic, req.level), messages):
+                yield line({"type": "token", "text": text})
+            result = await ask(llm, CorrectionsResponse, prompts.chat_corrections_system(req.level), latest)
+        except LLMError as exc:
+            yield line({"type": "error", "detail": str(exc)})
+            return
+        except HTTPException as exc:
+            yield line({"type": "error", "detail": exc.detail})
+            return
+        corrections = real_changes(result.corrections)
+        db.log_changes("chat", corrections)
+        yield line({"type": "corrections", "corrections": [c.model_dump() for c in corrections]})
+        yield line({"type": "done"})
+
+    return StreamingResponse(events(), media_type="application/x-ndjson")
 
 
 @app.get("/api/mistakes", response_model=MistakeSummary)

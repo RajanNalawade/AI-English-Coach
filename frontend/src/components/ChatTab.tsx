@@ -47,21 +47,32 @@ export default function ChatTab({ level }: { level: Level }) {
     const content = text.trim()
     if (!content) return
     const next: Turn[] = [...turns, { role: 'user', content }]
-    setTurns(next)
+    // An empty assistant turn is a placeholder that fills in as the reply streams.
+    setTurns([...next, { role: 'assistant', content: '' }])
     setDraft('')
+    let streamed = ''
+    const updateLast = (patch: Partial<Turn>) => setTurns((t) => [...t.slice(0, -1), { ...t[t.length - 1], ...patch }])
     const res = await run(() =>
-      api.chat(
+      api.chatStream(
         next.map(({ role, content }) => ({ role, content })),
         topic,
         level,
+        (text) => {
+          streamed += text
+          updateLast({ content: streamed })
+        },
       ),
     )
-    if (!res) return
-    setTurns((t) => {
-      const copy = [...t]
-      copy[copy.length - 1] = { ...copy[copy.length - 1], corrections: res.corrections }
-      return [...copy, { role: 'assistant', content: res.reply }]
-    })
+    if (!res) {
+      setTurns((t) => t.slice(0, -1))
+      return
+    }
+    // Corrections belong to the learner's message, just before the reply.
+    setTurns((t) => [
+      ...t.slice(0, -2),
+      { ...t[t.length - 2], corrections: res.corrections },
+      { role: 'assistant', content: res.reply },
+    ])
     if (speakReplies) speak(res.reply)
   }
 
@@ -123,27 +134,29 @@ export default function ChatTab({ level }: { level: Level }) {
             your messages.
           </p>
         )}
-        {turns.map((t, i) => (
-          <div key={i} className={`bubble ${t.role}`}>
-            <p>{t.content}</p>
-            {t.role === 'assistant' && canSpeak() && (
-              <button className="link replay" onClick={() => speak(t.content)} aria-label="Play this reply">
-                Play
-              </button>
-            )}
-            {t.corrections && t.corrections.length > 0 && (
-              <details className="fixes">
-                <summary>
-                  {t.corrections.length} correction{t.corrections.length > 1 ? 's' : ''}
-                </summary>
-                <ChangeList changes={t.corrections} />
-              </details>
-            )}
-          </div>
-        ))}
+        {turns.map((t, i) =>
+          t.content === '' ? null : (
+            <div key={i} className={`bubble ${t.role}`}>
+              <p>{t.content}</p>
+              {t.role === 'assistant' && canSpeak() && (
+                <button className="link replay" onClick={() => speak(t.content)} aria-label="Play this reply">
+                  Play
+                </button>
+              )}
+              {t.corrections && t.corrections.length > 0 && (
+                <details className="fixes">
+                  <summary>
+                    {t.corrections.length} correction{t.corrections.length > 1 ? 's' : ''}
+                  </summary>
+                  <ChangeList changes={t.corrections} />
+                </details>
+              )}
+            </div>
+          ),
+        )}
         {recorder.recording && <p className="hint recording-hint">Listening… tap Stop when you finish speaking.</p>}
         {transcribing && <p className="hint">Turning your speech into text…</p>}
-        {loading && !transcribing && <p className="hint">{SLOW_HINT}</p>}
+        {loading && !transcribing && turns.at(-1)?.content === '' && <p className="hint">{SLOW_HINT}</p>}
         {notice && <p className="hint">{notice}</p>}
         {error && <p className="banner error">{error}</p>}
         <div ref={endRef} />

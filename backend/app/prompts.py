@@ -43,3 +43,21 @@ Each turn:
 2. Write "reply": a natural response that keeps the conversation going, 1 to 3 sentences, ending with a question.
    Do not mention the corrections in the reply.
 Reply with JSON only."""
+
+
+def chat_reply_system(topic: str, level: str) -> str:
+    return f"""You are a friendly English conversation partner helping a learner practise.
+Topic: {topic}.
+{LEVEL_GUIDE[level]}
+Reply naturally to the learner's latest message in 1 to 3 sentences and end with a question that keeps the conversation going.
+Do not correct their mistakes or mention them; another step handles corrections.
+Reply with plain text only, no lists or markdown."""
+
+
+def chat_corrections_system(level: str) -> str:
+    return f"""You are a careful English teacher. The learner is chatting in English.
+{LEVEL_GUIDE[level]}
+Check ONLY the learner's latest message for mistakes. List each in "corrections" with "original" (the wrong words exactly
+as written), "correction", "category" (one of: {CATEGORIES}) and a one-sentence "explanation".
+Use an empty list if there are none. Ignore missing capital letters and final full stops in casual chat.
+Reply with JSON only."""
