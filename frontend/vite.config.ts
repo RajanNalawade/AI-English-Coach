@@ -32,6 +32,16 @@ export default defineConfig({
   server: {
     // Lets phones on the same Wi-Fi open the dev server.
     host: true,
+    // Vite rejects unknown host names; allow the HTTPS name Tailscale gives this PC (docs/PHONE.md).
+    allowedHosts: ['.ts.net'],
+    proxy: {
+      '/api': 'http://localhost:8000',
+    },
+  },
+  preview: {
+    host: true,
+    port: 4173,
+    allowedHosts: ['.ts.net'],
     proxy: {
       '/api': 'http://localhost:8000',
     },

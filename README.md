@@ -71,9 +71,10 @@ The first time you use the mic, the backend downloads the speech model (about 15
 
 To try it on your phone, connect it to the same Wi-Fi and open the `Network:` address that `npm run dev` prints. The microphone and installing it as an app (Add to Home Screen) both need HTTPS, so on a phone they come with deployment; typed practice works over Wi-Fi already.
 
-## Put it online
+## Use it on your phone
 
-To use it on your phone from anywhere, run it on a free Oracle Cloud server with HTTPS and a login: see [docs/DEPLOY.md](docs/DEPLOY.md). Everything is in `deploy/` (Docker Compose with Ollama, the backend, and Caddy for HTTPS).
+- **Easiest, free:** keep it running on your PC and open it from your phone through Tailscale: see [docs/PHONE.md](docs/PHONE.md).
+- **Always on, free:** run it on an Oracle Cloud Always Free server with HTTPS and a login: see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Configuration
 
