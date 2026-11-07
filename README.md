@@ -96,7 +96,6 @@ Backend environment variables:
 | `COACH_REMOTE_URL`, `COACH_REMOTE_API_KEY`, `COACH_REMOTE_MODEL` | empty | Any OpenAI-compatible API, e.g. Groq `https://api.groq.com/openai/v1` |
 | `COACH_REMOTE_REASONING_EFFORT` | empty | `low`/`medium`/`high` for reasoning models such as gpt-oss |
 | `COACH_STT_PROVIDER` | `local` | `openai` sends recordings to the hosted API (model `COACH_STT_REMOTE_MODEL`, default `whisper-large-v3-turbo`) |
-| `COACH_USER`, `COACH_PASSWORD` | `coach`, empty | With a password set, the backend asks for this login itself |
 | `COACH_STATIC_DIR` | empty | Folder with the built app for the backend to serve at `/` |
 
 Set `OLLAMA_URL=none` when there is no local Ollama to fall back to.
