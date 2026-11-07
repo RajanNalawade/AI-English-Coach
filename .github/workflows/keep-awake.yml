@@ -1,0 +1,20 @@
+# Keeps the free Render service awake, so visitors don't wait a minute for it to start.
+# It does nothing until you add a repository variable named RENDER_URL (see docs/RENDER.md).
+# GitHub may run scheduled jobs a few minutes late; that's fine, Render sleeps after 15 quiet minutes.
+name: Keep Render awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    if: vars.RENDER_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping the health check
+        run: curl --fail --silent --show-error --max-time 120 --retry 2 "${RENDER_URL%/}/api/health"
+        env:
+          RENDER_URL: ${{ vars.RENDER_URL }}

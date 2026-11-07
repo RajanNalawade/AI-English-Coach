@@ -1,26 +1,28 @@
-import { useEffect, useState } from 'react'
-import { api, type MistakeSummary } from '../api'
-import { useAsync } from './useAsync'
+import { useState } from 'react'
+import { clearMistakes, mistakeSummary } from '../progress'
 
 export default function ProgressTab() {
-  const [data, setData] = useState<MistakeSummary | null>(null)
-  const { loading, error, run } = useAsync()
+  const [data, setData] = useState(() => mistakeSummary())
 
-  useEffect(() => {
-    run(api.mistakes).then((res) => res && setData(res))
-  }, [])
+  function clear() {
+    if (!confirm('Delete all your saved progress on this device?')) return
+    clearMistakes()
+    setData(mistakeSummary())
+  }
 
-  if (loading) return <p className="hint">Loading…</p>
-  if (error) return <p className="banner error">{error}</p>
-  if (!data) return null
-  if (data.total === 0) return <p className="hint">No mistakes logged yet. Use Grammar or Chat and they will show up here.</p>
+  if (data.total === 0)
+    return (
+      <p className="hint">
+        No mistakes logged yet. Use Grammar or Chat and they will show up here. Your progress is saved on this device.
+      </p>
+    )
 
   const max = Math.max(...data.top_categories.map((c) => c.count))
   return (
     <section>
       <div className="card">
         <h2>Your most common mistakes</h2>
-        <p className="why">{data.total} corrections so far</p>
+        <p className="why">{data.total} corrections so far, saved on this device</p>
         {data.top_categories.map((c) => (
           <div key={c.category} className="bar-row">
             <span className="bar-label">{c.category.replace('_', ' ')}</span>
@@ -41,6 +43,9 @@ export default function ProgressTab() {
           ))}
         </ul>
       </div>
+      <button className="link" onClick={clear}>
+        Clear my progress
+      </button>
     </section>
   )
 }

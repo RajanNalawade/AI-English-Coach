@@ -18,6 +18,9 @@ function loadLevel(): Level {
   return 'B1'
 }
 
+// Give up after this long and show the "cannot reach" message instead.
+const WAKE_TIMEOUT_MS = 3 * 60 * 1000
+
 const EXPLAIN_LANGUAGES: { value: ExplainIn; label: string }[] = [
   { value: 'English', label: 'English' },
   { value: 'Hindi', label: 'हिन्दी Hindi' },
@@ -39,9 +42,39 @@ export default function App() {
   const [level, setLevel] = useState<Level>(loadLevel)
   const [explainIn, setExplainIn] = useState<ExplainIn>(loadExplainIn)
   const [health, setHealth] = useState<Health | null>(null)
+  const [waking, setWaking] = useState(false)
 
   useEffect(() => {
-    api.health().then(setHealth, () => setHealth({ ok: false, ollama: false }))
+    // A free Render server sleeps when nobody uses it, and takes about a minute to wake up.
+    // While it wakes, its requests hang or fail, so keep asking and show a friendly screen.
+    let stopped = false
+    const started = Date.now()
+    const slow = setTimeout(() => setWaking(true), 2500)
+    async function check() {
+      while (!stopped) {
+        try {
+          const res = await api.health()
+          if (res.ok) {
+            if (!stopped) setHealth(res)
+            break
+          }
+        } catch {
+          // Not awake yet; try again below.
+        }
+        if (Date.now() - started > WAKE_TIMEOUT_MS) {
+          if (!stopped) setHealth({ ok: false, ollama: false })
+          break
+        }
+        await new Promise((r) => setTimeout(r, 3000))
+      }
+      clearTimeout(slow)
+      if (!stopped) setWaking(false)
+    }
+    check()
+    return () => {
+      stopped = true
+      clearTimeout(slow)
+    }
   }, [])
 
   function changeLevel(next: Level) {
@@ -87,7 +120,7 @@ export default function App() {
         </label>
       </header>
 
-      <HealthBanner health={health} />
+      {waking ? <WakingScreen /> : <HealthBanner health={health} />}
 
       <nav className="tabs" role="tablist">
         {TABS.map((t) => (
@@ -103,6 +136,27 @@ export default function App() {
         {tab === 'Chat' && <ChatTab level={level} explainIn={explainIn} />}
         {tab === 'Progress' && <ProgressTab />}
       </main>
+    </div>
+  )
+}
+
+function WakingScreen() {
+  const [seconds, setSeconds] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setSeconds((s) => s + 1), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return (
+    <div className="card waking" role="status" aria-live="polite">
+      <span className="spinner" aria-hidden="true" />
+      <div>
+        <h2>Waking up the coach…</h2>
+        <p className="why">
+          The coach takes a short nap when nobody is using it. It usually wakes up in under a minute. You can start
+          typing now; your first answer will come once it is awake.
+        </p>
+        <p className="why">Waiting {seconds}s</p>
+      </div>
     </div>
   )
 }

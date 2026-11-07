@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type Change, type ChatMessage, type ExplainIn, type Level } from '../api'
+import { saveMistakes } from '../progress'
 import ChangeList from './ChangeList'
 import { SLOW_HINT, useAsync } from './useAsync'
 import { canRecord, canSpeak, speak, stopSpeaking, useRecorder } from './voice'
@@ -68,6 +69,7 @@ export default function ChatTab({ level, explainIn }: { level: Level; explainIn:
       setTurns((t) => t.slice(0, -1))
       return
     }
+    saveMistakes('chat', res.corrections)
     // Corrections belong to the learner's message, just before the reply.
     setTurns((t) => [
       ...t.slice(0, -2),

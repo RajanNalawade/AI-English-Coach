@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api, type ExplainIn, type GrammarResult, type Level } from '../api'
+import { saveMistakes } from '../progress'
 import ChangeList from './ChangeList'
 import { SLOW_HINT, useAsync } from './useAsync'
 
@@ -10,7 +11,9 @@ export default function GrammarTab({ level, explainIn }: { level: Level; explain
 
   async function check() {
     const res = await run(() => api.grammar(text, level, explainIn))
-    if (res) setResult(res)
+    if (!res) return
+    setResult(res)
+    saveMistakes('grammar', res.changes)
   }
 
   return (
