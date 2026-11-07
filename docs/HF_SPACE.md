@@ -8,7 +8,7 @@ Things to know:
 
 - **Speed:** 2 CPU cores are slower than your PC. Replies take roughly 10 to 40 seconds. For faster replies, use the smaller `qwen3:1.7b` model (see the end of this guide).
 - **Sleep:** a free Space sleeps after about 48 hours without visitors. The next visit wakes it in a minute or two.
-- **Progress tab:** the mistake log is stored inside the Space, so it resets when the Space restarts or is updated.
+- **Progress tab:** progress is saved in each visitor's own browser, so it survives the Space restarting or being updated.
 - **Public page:** the Space page is public, but the app itself asks for your password before it shows anything or uses the model.
 
 GitHub sends the app to the Space automatically on every change to `main`, using `.github/workflows/hf-space.yml`.
