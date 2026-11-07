@@ -1,15 +1,13 @@
 import asyncio
-import base64
 import json
-import secrets
 from pathlib import Path
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TypeVar
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
@@ -51,26 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-def authorized(header: str) -> bool:
-    scheme, _, value = header.partition(" ")
-    if scheme.lower() != "basic":
-        return False
-    try:
-        user, _, password = base64.b64decode(value).decode().partition(":")
-    except ValueError:
-        return False
-    return secrets.compare_digest(user, settings.auth_user) and secrets.compare_digest(password, settings.auth_password)
-
-
-@app.middleware("http")
-async def require_login(request: Request, call_next):
-    # Only on when COACH_PASSWORD is set; locally and behind Caddy the backend stays open.
-    # /api/health stays open so the host's health check works; it reveals only the model name.
-    if settings.auth_password and request.url.path != "/api/health" and not authorized(request.headers.get("authorization", "")):
-        return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="AI English Coach"'})
-    return await call_next(request)
 
 
 T = TypeVar("T", bound=BaseModel)

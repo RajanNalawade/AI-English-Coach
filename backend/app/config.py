@@ -31,9 +31,6 @@ class Settings:
     # faster-whisper model: tiny, base, small... ("base" is a good speed/accuracy trade-off on CPU).
     stt_model: str = field(default_factory=lambda: os.getenv("COACH_STT_MODEL", "base"))
     stt_language: str = field(default_factory=lambda: os.getenv("COACH_STT_LANGUAGE", "en"))
-    # When set, every request needs this login (for hosting the app publicly without a proxy in front).
-    auth_user: str = field(default_factory=lambda: os.getenv("COACH_USER", "coach"))
-    auth_password: str = field(default_factory=lambda: os.getenv("COACH_PASSWORD", ""))
     # Folder with the built PWA, served at / by the backend itself (single-service hosting).
     static_dir: str = field(default_factory=lambda: os.getenv("COACH_STATIC_DIR", ""))
     cors_origins: list[str] = field(

@@ -1,9 +1,10 @@
 # Put the coach online for free (Render + Groq)
 
-This runs the coach as one free **Render** web service, with **Groq's** free API doing the AI work (chat replies and speech-to-text). Neither needs a card. You get a fixed HTTPS address that works on your phone even when your PC is off, protected by a username and password.
+This runs the coach as one free **Render** web service, with **Groq's** free API doing the AI work (chat replies and speech-to-text). Neither needs a card. You get a fixed HTTPS address that works on your phone even when your PC is off. It's open to anyone who has the address, with no sign-in.
 
 Things to know:
 
+- **Open to anyone:** there's no password, so anyone with the address can use it, and their messages count towards your Groq daily limit. Keep the address to people you trust until a usage limit is added.
 - **Privacy:** your text and voice recordings go to Groq to be processed. Your PC setup (Ollama) stays fully private; this one doesn't.
 - **Daily limits:** Groq's free plan allows about 1,000 AI requests a day. A chat message uses two (reply and corrections), so that's roughly 500 messages a day. More than enough for one person.
 - **Sleep:** a free Render service sleeps after 15 minutes without visits. The first visit after that takes about a minute to wake up.
@@ -26,15 +27,13 @@ Sign up at https://dashboard.render.com/register. Choosing **GitHub** is easiest
 1. Open https://dashboard.render.com/blueprint/new (or **New > Blueprint** in the dashboard).
 2. Connect your GitHub account if asked, and pick the **AI-English-Coach** repository. Render reads `render.yaml` from it.
 3. **Blueprint name**: `ai-english-coach`.
-4. Render asks for the two secret values:
-   - `COACH_PASSWORD`: a password you make up for signing in to the app.
-   - `COACH_REMOTE_API_KEY`: the Groq key from step 1.
+4. Render asks for one secret value, `COACH_REMOTE_API_KEY`: the Groq key from step 1.
 5. Click **Deploy Blueprint**. The first build takes about 5 minutes.
 
 ## 4. Open it
 
 1. In the Render dashboard, open the **ai-english-coach** service. Its address is at the top, like `https://ai-english-coach-xxxx.onrender.com`.
-2. Open it and sign in with username `coach` and your `COACH_PASSWORD`.
+2. Open it. The coach starts straight away, with no sign-in.
 3. On your phone: **Install app** (Android Chrome) or **Share > Add to Home Screen** (iPhone Safari). The mic works because the address is HTTPS.
 
 ## Change the model
